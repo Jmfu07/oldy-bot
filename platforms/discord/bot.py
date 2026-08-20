@@ -1,12 +1,20 @@
 import logging
 
-import discord
-from discord.ext import commands
+try:
+    import discord
+    from discord.ext import commands
+except Exception as exc:
+    discord = None
+    commands = None
+    _discord_import_error = exc
 
 logger = logging.getLogger(__name__)
 
 
 def build_discord_bot() -> commands.Bot:
+    if discord is None or commands is None:
+        raise RuntimeError(f"Discord no puede iniciarse en este entorno: {_discord_import_error}")
+
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
