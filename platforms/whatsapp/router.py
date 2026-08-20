@@ -21,6 +21,7 @@ async def verify_webhook(
 @router.post("")
 async def webhook(request: Request):
     payload = await request.json()
+    logging.getLogger(__name__).info("WhatsApp webhook received")
     bot_jid = ""
     entry = (payload.get("entry") or [{}])[0]
     changes = (entry.get("changes") or [{}])[0]
@@ -29,6 +30,7 @@ async def webhook(request: Request):
     if isinstance(metadata, dict):
         bot_jid = str(metadata.get("display_phone_number") or metadata.get("phone_number_id") or "")
     result = await handle_ia_message(payload, bot_jid=bot_jid)
+    logging.getLogger(__name__).info("WhatsApp handler result: %s", result)
 
     if result.get("ignored"):
         return {"ok": True, "ignored": True}
@@ -37,6 +39,7 @@ async def webhook(request: Request):
     reply = result.get("reply") or ""
 
     if chat_id and reply:
-        await whatsapp_service.send_text(to=str(chat_id), body=str(reply))
+        send_result = await whatsapp_service.send_text(to=str(chat_id), body=str(reply))
+        logging.getLogger(__name__).info("WhatsApp send result: %s", send_result)
 
     return {"ok": True, "sent": bool(chat_id and reply)}

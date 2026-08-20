@@ -58,6 +58,7 @@ def _is_bot_mentioned(mentions: List[str], bot_jid: str) -> bool:
 
 async def handle_ia_message(payload: Dict[str, Any], bot_jid: str) -> Dict[str, Any]:
     chat_id, sender, text, mentions, is_group = _extract_meta_message(payload)
+    logger.info("WhatsApp parsed sender=%s text=%s group=%s", sender, text, is_group)
 
     if not sender or not text:
         return {"ok": True, "ignored": True, "reason": "missing_sender_or_text"}
@@ -70,6 +71,7 @@ async def handle_ia_message(payload: Dict[str, Any], bot_jid: str) -> Dict[str, 
         prompt = "Hola, ¿puedes ayudarme?"
 
     reply = await gemini_service.ask(prompt=prompt, user_id=sender)
+    logger.info("WhatsApp Gemini reply ready for sender=%s", sender)
 
     logger.info(
         "[WHATSAPP_IA] sender=%s group=%s processed=%s",
