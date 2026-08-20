@@ -1,0 +1,6 @@
+discord.py[voice]>=2.4.0
+PyNaCl>=1.5.0
+python-telegram-bot[job-queue]>=21.10
+google-genai>=2.18.0
+python-dotenv>=1.0.1
+yt-dlp>=2025.1.26

@@ -1,0 +1,14 @@
+[project]
+name = "mi-bot-comunidad"
+version = "1.0.0"
+description = "Bot Híbrido y Modular para Discord y Telegram con Google Gemini"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "discord.py[voice]>=2.4.0",
+    "pynacl>=1.5.0",
+    "python-telegram-bot[job-queue]>=21.10",
+    "google-genai>=2.18.0",
+    "python-dotenv>=1.0.1",
+    "yt-dlp>=2025.1.26",
+]
