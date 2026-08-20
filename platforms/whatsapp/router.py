@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from services.whatsapp_service import whatsapp_service
@@ -43,4 +44,5 @@ async def webhook(request: Request):
         logging.getLogger(__name__).info("WhatsApp send result: %s", send_result)
 
     return {"ok": True, "sent": bool(chat_id and reply)}
+
 
