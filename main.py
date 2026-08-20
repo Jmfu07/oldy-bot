@@ -1,17 +1,13 @@
-﻿import asyncio
+import asyncio
 import logging
 import os
 from contextlib import suppress
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 import uvicorn
 
-from platforms.whatsapp.handlers.ia import handle_ia_message
-from platforms.whatsapp.handlers.moderacion.gestionar_participante import (
-    gestionar_participante,
-)
-
+from platforms.whatsapp.router import router as whatsapp_router
 from platforms.discord.bot import build_discord_bot
 from platforms.telegram.bot import build_telegram_application
 
@@ -24,25 +20,12 @@ logging.basicConfig(
 logger = logging.getLogger("main")
 
 app = FastAPI(title="mi_bot_comunidad", version="1.0.0")
+app.include_router(whatsapp_router)
 
 
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
-
-
-@app.post("/webhook/whatsapp")
-async def whatsapp_webhook(request: Request) -> dict:
-    payload = await request.json()
-    event_type = str(payload.get("event") or "message")
-
-    if event_type == "moderacion":
-        result = await gestionar_participante(payload)
-        return {"ok": True, "result": result}
-
-    bot_jid = os.getenv("WHATSAPP_BOT_JID", "")
-    result = await handle_ia_message(payload, bot_jid=bot_jid)
-    return {"ok": True, "result": result}
 
 
 async def run_fastapi_server() -> None:
