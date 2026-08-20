@@ -8,14 +8,14 @@ router = APIRouter(prefix="/webhook/whatsapp", tags=["whatsapp"])
 
 @router.get("")
 async def verify_webhook(
-    hub_mode: str = Query(default=""),
-    hub_token: str = Query(default=""),
-    hub_challenge: str = Query(default=""),
+    hub_mode: str = Query(default="", alias="hub.mode"),
+    hub_token: str = Query(default="", alias="hub.verify_token"),
+    hub_challenge: str = Query(default="", alias="hub.challenge"),
 ):
     challenge = whatsapp_service.verify_webhook(hub_mode, hub_token, hub_challenge)
     if challenge is None:
         raise HTTPException(status_code=403, detail="Verification failed")
-    return challenge
+    return int(hub_challenge) if hub_challenge.isdigit() else hub_challenge
 
 
 @router.post("")
@@ -43,3 +43,4 @@ async def webhook(request: Request):
         logging.getLogger(__name__).info("WhatsApp send result: %s", send_result)
 
     return {"ok": True, "sent": bool(chat_id and reply)}
+
