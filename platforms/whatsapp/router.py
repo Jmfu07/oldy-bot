@@ -2,9 +2,6 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from services.whatsapp_service import whatsapp_service
 from platforms.whatsapp.handlers.ia import handle_ia_message
-from platforms.whatsapp.handlers.moderacion.gestionar_participante import (
-    gestionar_participante,
-)
 
 router = APIRouter(prefix="/webhook/whatsapp", tags=["whatsapp"])
 
@@ -24,10 +21,22 @@ async def verify_webhook(
 @router.post("")
 async def webhook(request: Request):
     payload = await request.json()
-    event_type = str(payload.get("event") or "message")
+    bot_jid = ""
+    entry = (payload.get("entry") or [{}])[0]
+    changes = (entry.get("changes") or [{}])[0]
+    value = changes.get("value") or {}
+    metadata = value.get("metadata") or {}
+    if isinstance(metadata, dict):
+        bot_jid = str(metadata.get("display_phone_number") or metadata.get("phone_number_id") or "")
+    result = await handle_ia_message(payload, bot_jid=bot_jid)
 
-    if event_type == "moderacion":
-        return {"ok": True, "result": await gestionar_participante(payload)}
+    if result.get("ignored"):
+        return {"ok": True, "ignored": True}
 
-    bot_jid = payload.get("botJid") or ""
-    return {"ok": True, "result": await handle_ia_message(payload, bot_jid=bot_jid)}
+    chat_id = result.get("chatId") or payload.get("chatId") or payload.get("from") or ""
+    reply = result.get("reply") or ""
+
+    if chat_id and reply:
+        await whatsapp_service.send_text(to=str(chat_id), body=str(reply))
+
+    return {"ok": True, "sent": bool(chat_id and reply)}

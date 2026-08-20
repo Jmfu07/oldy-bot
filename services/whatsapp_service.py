@@ -9,18 +9,19 @@ logger = logging.getLogger(__name__)
 
 class WhatsAppService:
     def __init__(self) -> None:
-        self.access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip()
-        self.phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
-        self.verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "").strip()
         self.api_version = os.getenv("WHATSAPP_API_VERSION", "v20.0").strip()
 
     def is_configured(self) -> bool:
-        return bool(self.access_token and self.phone_number_id)
+        return bool(
+            os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip()
+            and os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+        )
 
     def verify_webhook(self, mode: str, token: str, challenge: str) -> Optional[str]:
+        verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "").strip()
         if mode != "subscribe":
             return None
-        if token != self.verify_token:
+        if token != verify_token:
             return None
         return challenge
 
@@ -28,12 +29,15 @@ class WhatsAppService:
         if not self.is_configured():
             raise ValueError("WhatsApp Cloud API no está configurada.")
 
+        access_token = os.getenv("WHATSAPP_ACCESS_TOKEN", "").strip()
+        phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+
         url = (
             f"https://graph.facebook.com/{self.api_version}/"
-            f"{self.phone_number_id}/messages"
+            f"{phone_number_id}/messages"
         )
         headers = {
-            "Authorization": f"Bearer {self.access_token}",
+            "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         }
         payload = {

@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 import logging
 
 from services.gemini_service import gemini_service
@@ -8,26 +8,38 @@ from services.gemini_service import gemini_service
 logger = logging.getLogger(__name__)
 
 
-def _extract_text(payload: Dict[str, Any]) -> str:
-    text = payload.get("text") or payload.get("body") or ""
-    if isinstance(text, str):
-        return text.strip()
+def _pick_text(message: Dict[str, Any]) -> str:
+    for key in ("text", "body", "caption"):
+        value = message.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
     return ""
 
 
-def _extract_chat_id(payload: Dict[str, Any]) -> str:
-    return str(payload.get("chatId") or payload.get("from") or "")
-
-
-def _extract_sender(payload: Dict[str, Any]) -> str:
-    return str(payload.get("sender") or payload.get("author") or payload.get("from") or "")
-
-
-def _extract_mentions(payload: Dict[str, Any]) -> List[str]:
-    mentions = payload.get("mentionedJid") or []
+def _pick_mentions(message: Dict[str, Any]) -> List[str]:
+    context = message.get("contextInfo") or {}
+    mentions = context.get("mentionedJid") or message.get("mentionedJid") or []
     if isinstance(mentions, list):
         return [str(x) for x in mentions]
     return []
+
+
+def _extract_meta_message(payload: Dict[str, Any]) -> Tuple[str, str, str, List[str], Dict[str, Any]]:
+    entry = (payload.get("entry") or [{}])[0]
+    changes = (entry.get("changes") or [{}])[0]
+    value = changes.get("value") or {}
+    messages = value.get("messages") or []
+    contacts = value.get("contacts") or []
+    message = messages[0] if messages and isinstance(messages[0], dict) else {}
+    contact = contacts[0] if contacts and isinstance(contacts[0], dict) else {}
+
+    from_id = str(message.get("from") or value.get("from") or contact.get("wa_id") or "")
+    chat_id = str(value.get("chatId") or message.get("chatId") or from_id)
+    sender = str(contact.get("wa_id") or message.get("from") or from_id)
+    text = _pick_text(message)
+    mentions = _pick_mentions(message)
+
+    return chat_id, sender, text, mentions, value
 
 
 def _is_group(chat_id: str) -> bool:
@@ -51,15 +63,12 @@ async def handle_ia_message(payload: Dict[str, Any], bot_jid: str) -> Dict[str, 
     - Privado (1 a 1): procesa todos los mensajes.
     - Grupo (@g.us): solo si es comando (/ia,/reglas) o si menciona al bot.
     """
-    chat_id = _extract_chat_id(payload)
-    sender = _extract_sender(payload)
-    text = _extract_text(payload)
-    mentions = _extract_mentions(payload)
+    chat_id, sender, text, mentions, value = _extract_meta_message(payload)
 
     if not chat_id or not text:
         return {"ok": True, "ignored": True, "reason": "missing_chat_or_text"}
 
-    group = _is_group(chat_id)
+    group = _is_group(chat_id) or bool((value.get("metadata") or {}).get("group_id"))
     should_process = True
 
     if group:
