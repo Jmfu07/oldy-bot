@@ -1,5 +1,9 @@
-﻿import discord
+import logging
+
+import discord
 from discord.ext import commands
+
+logger = logging.getLogger(__name__)
 
 
 def build_discord_bot() -> commands.Bot:
@@ -11,6 +15,6 @@ def build_discord_bot() -> commands.Bot:
 
     @bot.event
     async def on_ready() -> None:
-        print(f"[Discord] Conectado como {bot.user} ({bot.user.id})")
+        logger.info("[Discord] Conectado como %s (%s)", bot.user, bot.user.id if bot.user else "N/A")
 
     return bot
